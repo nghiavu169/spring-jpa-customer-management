@@ -8,13 +8,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.util.Optional;
 
 @Controller
+@EnableSpringDataWebSupport
 public class CustomerController {
 
     @Autowired
@@ -29,14 +32,15 @@ public class CustomerController {
     }
 
     @GetMapping("/customers")
-    public ModelAndView listCustomers(@RequestParam("s") Optional<String> s, @PageableDefault(size = 5) Pageable pageable) {
+    public ModelAndView listCustomers(@RequestParam("s") Optional<String> s, @PageableDefault(size = 6) Pageable pageable) {
         Page<Customer> customers;
+        ModelAndView modelAndView = new ModelAndView("/customer/list");
         if (s.isPresent()) {
             customers = customerService.findAllByFirstNameContaining(s.get(), pageable);
+            modelAndView.addObject("s",s.get());
         } else {
             customers = customerService.findAll(pageable);
         }
-        ModelAndView modelAndView = new ModelAndView("/customer/list");
         modelAndView.addObject("customers", customers);
         return modelAndView;
     }
@@ -58,17 +62,13 @@ public class CustomerController {
     }
 
     @GetMapping("/edit-customer/{id}")
-    public ModelAndView showEditForm(@PathVariable Long id) {
-        Customer customer = customerService.findById(id);
-        ModelAndView modelAndView;
+    public String showEditForm(@PathVariable("id") Customer customer, Model model) {
         if (customer != null) {
-            modelAndView = new ModelAndView("/customer/edit");
-            modelAndView.addObject("customer", customer);
-
+           model.addAttribute("customer", customer);
+           return "/customer/edit";
         } else {
-            modelAndView = new ModelAndView("/error.404");
+           return "/error.404";
         }
-        return modelAndView;
     }
 
     @PostMapping("/edit-customer")
@@ -81,22 +81,18 @@ public class CustomerController {
     }
 
     @GetMapping("/delete-customer/{id}")
-    public ModelAndView showDeleteForm(@PathVariable Long id) {
-        Customer customer = customerService.findById(id);
-        ModelAndView modelAndView;
+    public String showDeleteForm(@PathVariable("id") Customer customer, Model model) {
         if (customer != null) {
-            modelAndView = new ModelAndView("/customer/delete");
-            modelAndView.addObject("customer", customer);
-
+            model.addAttribute("customer", customer);
+            return "/customer/delete";
         } else {
-            modelAndView = new ModelAndView("/error.404");
+            return "/error.404";
         }
-        return modelAndView;
     }
 
     @PostMapping("/delete-customer")
-    public String deleteCustomer(@ModelAttribute("customer") Customer customer) {
-        customerService.remove(customer.getId());
+    public String deleteCustomer(@RequestParam("id") Long id) {
+        customerService.remove(id);
         return "redirect:customers";
     }
 }
